@@ -144,7 +144,7 @@ int main(int argc, char** argv){
   }
   // kernel_cholesky (n, POLYBENCH_ARRAY(A));
   ENDTIME();
-  
+
   /* Stop and print timer. */
   polybench_stop_instruments;
   polybench_print_instruments;

@@ -3,13 +3,13 @@
 echo "Polybench Cholesky. Sequential x OpenMP parallel x Pthread parallel"
 
 # CC=/usr/local/bin/gcc-6
-CC=gcc 
-CFLAGS="-std=gnu99 -Wall -lm"
-DATASET="-DMEDIUM_DATASET"
+CC=gcc
+CFLAGS="-std=gnu99 -lm"
+DATASET="-DLARGE_DATASET"
 nthreads=32
 
 # SEQUENTIAL CHOLESKY
-echo "SEQUENTIAL"
+# echo "SEQUENTIAL"
 $CC $CFLAGS -I utilities utilities/polybench.c $1.c $DATASET -o $1.out
 file="./data/$1_sequential.data"
 if [ -f "$file" ]
@@ -18,6 +18,7 @@ then
 fi
 for i in {1..11}
 do
+	 echo "SEQUENTIAL - EXECUTION $i"
    if [[ $i == 1 ]]; then
      ./$1.out > /dev/null
    else
@@ -34,8 +35,9 @@ rm final.data sort.data
 # OMP CHOLESKY
 $CC $CFLAGS -fopenmp -I utilities utilities/polybench.c $1_omp.c $DATASET -o $1_omp.out
 avgomp=(0 0 0 0 0)
-for ((t=1; t<=nthreads; t++)); do
-  echo "OMP FOR $t THREADS"
+for t in 2 4 8 16 32
+do
+  # echo "OMP FOR $t THREADS"
   file="./data/$1_omp_$t.data"
   if [ -f "$file" ]
   then
@@ -43,6 +45,7 @@ for ((t=1; t<=nthreads; t++)); do
   fi
   for i in {1..11}
   do
+		 echo "OMP FOR $t THREADS - EXECUTION $i"
      if [[ $i == 1 ]]; then
        ./$1_omp.out $t > /dev/null
      else
@@ -58,29 +61,31 @@ for ((t=1; t<=nthreads; t++)); do
 done
 
 # PTHREAD CHOLESKY
-$CC $CFLAGS -pthread -I utilities utilities/polybench.c $1_pthread.c -DATASET -o $1_pthread.out
+$CC $CFLAGS -pthread -I utilities utilities/polybench.c $1_pthread.c $DATASET -o $1_pthread.out
 avgp=(0 0 0 0 0)
-for ((t=1; t<=nthreads; t++)); do
-  echo "PTHREAD FOR $t THREADS"
-  file="./data/$1_pthread_$t.data"
-  if [ -f "$file" ]
-  then
-  	rm $file
-  fi
-  for i in {1..11}
-  do
-     if [[ $i == 1 ]]; then
-       ./$1_pthread.out $t > /dev/null
-     else
-      # ./$1.out $MSIZE 2 >> testfile.data
-       ./$1_pthread.out $t >> ./data/$1_pthread_$t.data 2>&1
-    fi
-  done
-  cat ./data/$1_pthread_$t.data | sort > sort.data
-  sed '1d; $d' sort.data > final.data
-  avgp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
-  echo ${avgp[$((t-1))]}
-  rm final.data sort.data
+for t in 2 4 8 16 32
+do
+	file="./data/$1_pthread_$t.data"
+	if [ -f "$file" ]
+	then
+		rm $file
+	fi
+	# echo "PTHREAD FOR $t THREADS"
+	for i in {1..11}
+	do
+		echo "PTHREAD FOR $t THREADS - EXECUTION $i"
+		if [[ $i == 1 ]]; then
+			./$1_pthread.out $t > /dev/null
+		else
+			# ./$1.out $MSIZE 2 >> testfile.data
+			./$1_pthread.out $t >> ./data/$1_pthread_$t.data 2>&1
+		fi
+	done
+	cat ./data/$1_pthread_$t.data | sort > sort.data
+	sed '1d; $d' sort.data > final.data
+	avgp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+	echo ${avgp[$((t-1))]}
+	rm final.data sort.data
 done
 
 #SAVING FILE FOR PLOTING IN GNUPLOT
@@ -88,7 +93,7 @@ file="./data/$1_speedup.data"
 if [ -f $file ] ; then
     rm $file
 fi
-for ((t=0; t<nthreads; t++)); do
+for ((t=0; t<nthreads; t+2)); do
 	if [[ $t == 0 ]]; then
 		echo "1" "1"  "1" >> ./data/$1_speedup.data
 	else

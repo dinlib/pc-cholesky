@@ -4,7 +4,7 @@
 #define minimum(x, y) (((x) > (y)) ? (x) : (y))
 #define maximum(x, y) (((x) < (y)) ? (x) : (y))
 
-#define BEGINTIME()                                                            \
+#define BEGINTIME()                                                                 \
   struct timespec start, finish;                                               \
   double elapsed;                                                              \
   clock_gettime(CLOCK_MONOTONIC, &start);
@@ -14,7 +14,7 @@
   elapsed = (finish.tv_sec - start.tv_sec);                                    \
   elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;                  \
   printf("%.2f\n", elapsed);
-
+  
 void free2D(double **m){
   free(*m);
   m = 0;
