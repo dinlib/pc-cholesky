@@ -2,12 +2,15 @@
 
 echo "Polybench Cholesky. Sequential x OpenMP parallel x Pthread parallel"
 
-CC=/usr/local/bin/gcc-6
-nthreads=10
+# CC=/usr/local/bin/gcc-6
+CC=gcc 
+CFLAGS="-std=gnu99 -Wall -lm"
+DATASET="-DMEDIUM_DATASET"
+nthreads=32
 
 # SEQUENTIAL CHOLESKY
 echo "SEQUENTIAL"
-$CC -I utilities utilities/polybench.c $1.c -DMEDIUM_DATASET -o $1.out
+$CC $CFLAGS -I utilities utilities/polybench.c $1.c $DATASET -o $1.out
 file="./data/$1_sequential.data"
 if [ -f "$file" ]
 then
@@ -29,7 +32,7 @@ rm final.data sort.data
 # ./cholesky.out
 
 # OMP CHOLESKY
-$CC -fopenmp -I utilities utilities/polybench.c $1_omp.c -DMEDIUM_DATASET -o $1_omp.out
+$CC $CFLAGS -fopenmp -I utilities utilities/polybench.c $1_omp.c $DATASET -o $1_omp.out
 avgomp=(0 0 0 0 0)
 for ((t=1; t<=nthreads; t++)); do
   echo "OMP FOR $t THREADS"
@@ -55,7 +58,7 @@ for ((t=1; t<=nthreads; t++)); do
 done
 
 # PTHREAD CHOLESKY
-$CC -pthread -I utilities utilities/polybench.c $1_pthread.c -DMEDIUM_DATASET -o $1_pthread.out
+$CC $CFLAGS -pthread -I utilities utilities/polybench.c $1_pthread.c -DATASET -o $1_pthread.out
 avgp=(0 0 0 0 0)
 for ((t=1; t<=nthreads; t++)); do
   echo "PTHREAD FOR $t THREADS"

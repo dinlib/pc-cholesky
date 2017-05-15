@@ -21,8 +21,9 @@ void free2D(double **m){
 }
 
 void printMatrixD(double **m, int l, int c){
-	for(int i = 0; i < l; i++){
-		for(int j = 0; j < c; j++){
+	int i, j;
+	for(i = 0; i < l; i++){
+		for(j = 0; j < c; j++){
 			printf("%.2f ", m[i][j]);
 		}
 		printf("\n");
