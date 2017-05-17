@@ -23,6 +23,7 @@
 #include "cholesky.h"
 
 double **M;
+double **N;
 int size = 0;
 int cut = 0;
 int nthreads = 0;
@@ -32,9 +33,11 @@ int nthreads = 0;
 static
 void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
   M = (double **)malloc(n * sizeof(double));
+  N = (double **)malloc(n * sizeof(double));
   int i, j;
   for (i = 0; i < n; i++){
     M[i] = (double*)malloc(n * sizeof(double));
+    N[i] = (double*)malloc(n * sizeof(double));
     for (j = 0; j <= i; j++){
       A[i][j] = (DATA_TYPE)(-j % n) / n + 1;
       M[i][j] = (DATA_TYPE)(-j % n) / n + 1;
@@ -49,18 +52,18 @@ void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 
   /* Make the matrix positive semi-definite. */
   int r,s,t;
-  POLYBENCH_2D_ARRAY_DECL(B, DATA_TYPE, N, N, n, n);
+
   for (r = 0; r < n; ++r)
   for (s = 0; s < n; ++s)
-  (POLYBENCH_ARRAY(B))[r][s] = 0;
+  N[r][s] = 0;
   for (t = 0; t < n; ++t)
   for (r = 0; r < n; ++r)
   for (s = 0; s < n; ++s)
-  (POLYBENCH_ARRAY(B))[r][s] += A[r][t] * A[s][t];
+  N[r][s] += A[r][t] * A[s][t];
   for (r = 0; r < n; ++r)
   for (s = 0; s < n; ++s)
-  A[r][s] = (POLYBENCH_ARRAY(B))[r][s];
-  POLYBENCH_FREE_ARRAY(B);
+  A[r][s] = N[r][s];
+  free2D(N);
 
 }
 

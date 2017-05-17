@@ -2,15 +2,23 @@
 
 echo "Polybench Cholesky. Sequential x OpenMP parallel x Pthread parallel"
 
-# CC=/usr/local/bin/gcc-6
-CC=gcc
+CC=/usr/local/bin/gcc-6
+# CC=gcc
 CFLAGS="-std=gnu99 -lm"
-DATASET="-DLARGE_DATASET"
+DATASET="-DMEDIUM_DATASET"
 nthreads=32
+
+#COMPILE
+# $CC $CFLAGS -I utilities utilities/polybench.c $1.c $DATASET -o $1.out
+# $CC $CFLAGS -fopenmp -I utilities utilities/polybench.c $1_omp.c $DATASET -o $1_omp.out
+# $CC $CFLAGS -pthread -I utilities utilities/polybench.c $1_pthread.c $DATASET -o $1_pthread.out
+$CC $CFLAGS $1.c -o $1.out
+$CC $CFLAGS -fopenmp $1_omp.c -o $1_omp.out
+$CC $CFLAGS -pthread $1_pthread.c -o $1_pthread.out
+
 
 # SEQUENTIAL CHOLESKY
 # echo "SEQUENTIAL"
-$CC $CFLAGS -I utilities utilities/polybench.c $1.c $DATASET -o $1.out
 file="./data/$1_sequential.data"
 if [ -f "$file" ]
 then
@@ -29,11 +37,11 @@ done
 cat ./data/$1_sequential.data | sort > sort.data
 sed '1d; $d' sort.data > final.data
 avgs=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+echo $avgs
 rm final.data sort.data
 # ./cholesky.out
 
 # OMP CHOLESKY
-$CC $CFLAGS -fopenmp -I utilities utilities/polybench.c $1_omp.c $DATASET -o $1_omp.out
 avgomp=(0 0 0 0 0)
 for t in 2 4 8 16 32
 do
@@ -55,13 +63,14 @@ do
   done
   cat ./data/$1_omp_$t.data | sort > sort.data
   sed '1d; $d' sort.data > final.data
-  avgomp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
-  echo ${avgomp[$((t-1))]}
+  # avgomp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+  # echo ${avgomp[$((t-1))]}
+	avgomp[$t]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+  echo ${avgomp[$t]}
   rm final.data sort.data
 done
 
 # PTHREAD CHOLESKY
-$CC $CFLAGS -pthread -I utilities utilities/polybench.c $1_pthread.c $DATASET -o $1_pthread.out
 avgp=(0 0 0 0 0)
 for t in 2 4 8 16 32
 do
@@ -83,8 +92,10 @@ do
 	done
 	cat ./data/$1_pthread_$t.data | sort > sort.data
 	sed '1d; $d' sort.data > final.data
-	avgp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
-	echo ${avgp[$((t-1))]}
+	# avgp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+	# echo ${avgp[$((t-1))]}
+	avgp[$t]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+	echo ${avgp[$t]}
 	rm final.data sort.data
 done
 
@@ -93,12 +104,13 @@ file="./data/$1_speedup.data"
 if [ -f $file ] ; then
     rm $file
 fi
-for ((t=0; t<nthreads; t+2)); do
-	if [[ $t == 0 ]]; then
-		echo "1" "1"  "1" >> ./data/$1_speedup.data
-	else
+for t in 2 4 8 16 32
+do
+	# if [[ $t == 0 ]]; then
+	# 	echo "1" "1"  "1" >> ./data/$1_speedup.data
+	# else
 		pthread=$(echo "$avgs / ${avgp[t]}" | bc -l)
 		omp=$(echo "$avgs / ${avgomp[t]}" | bc -l)
-		echo $((t+1)) $omp $pthread >> ./data/$1_speedup.data
- fi
+		echo $t $omp $pthread >> ./data/$1_speedup.data
+ # fi
 done
