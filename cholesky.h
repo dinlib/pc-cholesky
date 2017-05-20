@@ -11,12 +11,16 @@
 # define _CHOLESKY_H
 
 /* Default to LARGE_DATASET. */
-# if !defined(MINI_DATASET) && !defined(SMALL_DATASET) && !defined(MEDIUM_DATASET) && !defined(LARGE_DATASET) && !defined(EXTRALARGE_DATASET)
+# if !defined(CUSTOM_DATASET) && !defined(MINI_DATASET) && !defined(SMALL_DATASET) && !defined(MEDIUM_DATASET) && !defined(LARGE_DATASET) && !defined(EXTRALARGE_DATASET)
 #  define LARGE_DATASET
 # endif
 
 # if !defined(N)
 /* Define sample dataset sizes. */
+#  ifdef CUSTOM_DATASET
+#   define N 40
+#  endif
+
 #  ifdef MINI_DATASET
 #   define N 40
 #  endif

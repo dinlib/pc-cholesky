@@ -22,35 +22,52 @@
 #include "cholesky.h"
 
 
+double **I, **O;
+double **Aux;
+int size;
+int nthreads;
+
 /* Array initialization. */
 static void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
-	int i, j;
+  I = (double **)malloc(n * sizeof(double));
+  O = (double **)calloc(n, sizeof(double));
+  Aux = (double **)malloc(n * sizeof(double));
+  int i, j;
+  for (i = 0; i < n; i++){
+    I[i] = (double*)malloc(n * sizeof(double));
+    O[i] = (double*)calloc(n, sizeof(double));
+    Aux[i] = (double*)malloc(n * sizeof(double));
+    for (j = 0; j <= i; j++){
+      A[i][j] = (DATA_TYPE)(-j % n) / n + 1;
+      I[i][j] = (DATA_TYPE)(-j % n) / n + 1;
+      // O[i][j] = (DATA_TYPE)(-j % n) / n + 1;
+    }
+    for (j = i+1; j < n; j++) {
+      A[i][j] = 0;
+      I[i][j] = A[i][j];
+      // O[i][j] = A[i][j];
+    }
+    A[i][i] = 1;
+    I[i][i] = A[i][i];
+    // O[i][i] = A[i][i];
+  }
 
-	for (i = 0; i < n; i++)
-	{
-		for (j = 0; j <= i; j++)
-		A[i][j] = (DATA_TYPE)(-j % n) / n + 1;
-		for (j = i+1; j < n; j++) {
-			A[i][j] = 0;
-		}
-		A[i][i] = 1;
-	}
+  /* Make the matrix positive semi-definite. */
+  int r,s,t;
 
-	/* Make the matrix positive semi-definite. */
-	int r,s,t;
-	POLYBENCH_2D_ARRAY_DECL(B, DATA_TYPE, N, N, n, n);
-	for (r = 0; r < n; ++r)
-	for (s = 0; s < n; ++s)
-	(POLYBENCH_ARRAY(B))[r][s] = 0;
-	for (t = 0; t < n; ++t)
-	for (r = 0; r < n; ++r)
-	for (s = 0; s < n; ++s)
-	(POLYBENCH_ARRAY(B))[r][s] += A[r][t] * A[s][t];
-	for (r = 0; r < n; ++r)
-	for (s = 0; s < n; ++s)
-	A[r][s] = (POLYBENCH_ARRAY(B))[r][s];
-	POLYBENCH_FREE_ARRAY(B);
-
+  for (r = 0; r < n; ++r)
+    for (s = 0; s < n; ++s)
+      Aux[r][s] = 0;
+  for (t = 0; t < n; ++t)
+    for (r = 0; r < n; ++r)
+      for (s = 0; s < n; ++s)
+        Aux[r][s] += I[r][t] * I[s][t];
+  for (r = 0; r < n; ++r)
+    for (s = 0; s < n; ++s){
+      I[r][s] = Aux[r][s];
+      // O[r][s] = Aux[r][s];
+    }
+  free2D(Aux);
 }
 
 
@@ -78,42 +95,112 @@ static void kernel_cholesky(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 
 
 	#pragma scop
-	for (i = 0; i < _PB_N; i++) {
+	for (i = 0; i < size; i++) {
 		//j<i
 		for (j = 0; j < i; j++) {
 			for (k = 0; k < j; k++) {
-				A[i][j] -= A[i][k] * A[j][k];
+				I[i][j] -= I[i][k] * I[j][k];
 			}
-			A[i][j] /= A[j][j];
+			I[i][j] /= I[j][j];
 		}
 		// i==j case
 		for (k = 0; k < i; k++) {
-			A[i][i] -= A[i][k] * A[i][k];
+			I[i][i] -= I[i][k] * I[i][k];
 		}
-		A[i][i] = SQRT_FUN(A[i][i]);
+		I[i][i] = SQRT_FUN(I[i][i]);
 	}
 	#pragma endscop
 
 }
 
+static void kernel_cholesky_crout(){
+	int i, j, k;
+	double sum;
+	#pragma scop
+	for (j = 0; j < size; j++) {
+    sum = 0;
+    for (k = 0; k < j; k++) {
+      sum += O[j][k] * O[j][k];
+    }
+    O[j][j] = SQRT_FUN(I[j][j] - sum);
+    for (i = j + 1; i < size; i++) {
+      sum = 0;
+      for (k = 0; k < j; k++) {
+        sum += O[i][k] * O[j][k];
+      }
+      O[i][j] = (1.0 / O[j][j] * (I[i][j] - sum));
+    }
+  }
+	#pragma endscop
+}
+
+static void cholesky_row_upper(){
+	int i, j, k;
+	for(k = 0; k < size; k++){
+			  I[k][k] = sqrtf(I[k][k]);
+			  for(j = (k + 1); j < size; j++){
+          I[k][j] /=  I[k][k];
+        }
+				for(i = (k + 1); i < size; i++){
+					for(j = i; j < size; j++){
+						 I[i][j] -=  I[k][i] *  I[k][j];
+					}
+				}
+	}
+	for(i = 0; i < size; i++){
+    for(j = 0; j < i; j++){
+      I[i][j] = 0.0;
+    }
+  }
+}
+
+static void cholesky_row_lower(){
+	int i, j, k;
+	for(k = 0; k < size; k++){
+			  I[k][k] = sqrtf(I[k][k]);
+			  for(j = (k + 1); j < size; j++){
+          I[k][j] /=  I[k][k];
+          I[j][k] = I[k][j];
+        }
+				for(i = (k + 1); i < size; i++){
+					for(j = i; j < size; j++){
+						 I[i][j] -=  I[k][i] *  I[k][j];
+             I[j][i] = I[i][j];
+					}
+				}
+	}
+	for(i = 0; i < size; i++){
+    for(j = i + 1; j < size; j++){
+      I[i][j] = 0.0;
+    }
+  }
+}
+
 
 int main(int argc, char** argv){
 	/* Retrieve problem size. */
-	int n = N;
+  size = N;
+  printf("size: %d\n", size);
 
 	/* Variable declaration/allocation. */
-	POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, n, n);
+	POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
 
 	/* Initialize array(s). */
-	init_array (n, POLYBENCH_ARRAY(A));
+	init_array(size, POLYBENCH_ARRAY(A));
+  // test(I, size)
 
 	/* Start timer. */
 	polybench_start_instruments;
+	printMatrix(I, size);
+  // printMatrix(O, size);
 
 	BEGINTIME();
 	/* Run kernel. */
-	kernel_cholesky (n, POLYBENCH_ARRAY(A));
+  // kernel_cholesky(size, POLYBENCH_ARRAY(A));
+  cholesky_row_lower();
 	ENDTIME();
+  printf("\n");
+  printMatrix(I, size);
 
 	/* Stop and print timer. */
 	polybench_stop_instruments;
@@ -121,10 +208,12 @@ int main(int argc, char** argv){
 
 	/* Prevent dead-code elimination. All live-out data must be printed
 	by the function call in argument. */
-	polybench_prevent_dce(print_array(n, POLYBENCH_ARRAY(A)));
+	polybench_prevent_dce(print_array(size, POLYBENCH_ARRAY(A)));
 
 	/* Be clean. */
 	POLYBENCH_FREE_ARRAY(A);
+  free2D(I);
+  free2D(O);
 
 	return 0;
 }

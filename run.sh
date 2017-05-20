@@ -1,25 +1,19 @@
 #! /bin/bash
+PROGRAM="cholesky"
+# out1="./${PROGRAM}.out"
+# out2="./${PROGRAM}_omp.out"
+# out3="./${PROGRAM}_pthread.out"
+# if [ -f "$out1" ] -o [ -f "$out2" ] -o [ -f "$out3" ];
+# then
+# 	echo "Please, compile your code using <make compile> before runing the script"
+# 	exit 1
+# fi
 
 echo "Polybench Cholesky. Sequential x OpenMP parallel x Pthread parallel"
 
-CC=/usr/local/bin/gcc-6
-# CC=gcc
-CFLAGS="-std=gnu99 -lm"
-DATASET="-DMEDIUM_DATASET"
-nthreads=32
-
-#COMPILE
-# $CC $CFLAGS -I utilities utilities/polybench.c $1.c $DATASET -o $1.out
-# $CC $CFLAGS -fopenmp -I utilities utilities/polybench.c $1_omp.c $DATASET -o $1_omp.out
-# $CC $CFLAGS -pthread -I utilities utilities/polybench.c $1_pthread.c $DATASET -o $1_pthread.out
-$CC $CFLAGS $1.c -o $1.out
-$CC $CFLAGS -fopenmp $1_omp.c -o $1_omp.out
-$CC $CFLAGS -pthread $1_pthread.c -o $1_pthread.out
-
-
 # SEQUENTIAL CHOLESKY
 # echo "SEQUENTIAL"
-file="./data/$1_sequential.data"
+file="./data/${PROGRAM}_sequential.data"
 if [ -f "$file" ]
 then
 	rm $file
@@ -28,13 +22,13 @@ for i in {1..11}
 do
 	 echo "SEQUENTIAL - EXECUTION $i"
    if [[ $i == 1 ]]; then
-     ./$1.out > /dev/null
+     ./${PROGRAM}.out > /dev/null
    else
-    # ./$1.out $MSIZE 2 >> testfile.data
-     ./$1.out >> ./data/$1_sequential.data 2>&1
+    # ./${PROGRAM}.out $MSIZE 2 >> testfile.data
+     ./${PROGRAM}.out >> ./data/${PROGRAM}_sequential.data 2>&1
   fi
 done
-cat ./data/$1_sequential.data | sort > sort.data
+cat ./data/${PROGRAM}_sequential.data | sort > sort.data
 sed '1d; $d' sort.data > final.data
 avgs=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
 echo $avgs
@@ -42,11 +36,10 @@ rm final.data sort.data
 # ./cholesky.out
 
 # OMP CHOLESKY
-avgomp=(0 0 0 0 0)
 for t in 2 4 8 16 32
 do
   # echo "OMP FOR $t THREADS"
-  file="./data/$1_omp_$t.data"
+  file="./data/${PROGRAM}_omp_$t.data"
   if [ -f "$file" ]
   then
   	rm $file
@@ -55,13 +48,13 @@ do
   do
 		 echo "OMP FOR $t THREADS - EXECUTION $i"
      if [[ $i == 1 ]]; then
-       ./$1_omp.out $t > /dev/null
+       ./${PROGRAM}_omp.out $t > /dev/null
      else
-      # ./$1.out $MSIZE 2 >> testfile.data
-       ./$1_omp.out $t >> ./data/$1_omp_$t.data 2>&1
+      # ./${PROGRAM}.out $MSIZE 2 >> testfile.data
+       ./${PROGRAM}_omp.out $t >> ./data/${PROGRAM}_omp_$t.data 2>&1
     fi
   done
-  cat ./data/$1_omp_$t.data | sort > sort.data
+  cat ./data/${PROGRAM}_omp_$t.data | sort > sort.data
   sed '1d; $d' sort.data > final.data
   # avgomp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
   # echo ${avgomp[$((t-1))]}
@@ -71,10 +64,9 @@ do
 done
 
 # PTHREAD CHOLESKY
-avgp=(0 0 0 0 0)
 for t in 2 4 8 16 32
 do
-	file="./data/$1_pthread_$t.data"
+	file="./data/${PROGRAM}_pthread_$t.data"
 	if [ -f "$file" ]
 	then
 		rm $file
@@ -84,13 +76,13 @@ do
 	do
 		echo "PTHREAD FOR $t THREADS - EXECUTION $i"
 		if [[ $i == 1 ]]; then
-			./$1_pthread.out $t > /dev/null
+			./${PROGRAM}_pthread.out $t > /dev/null
 		else
-			# ./$1.out $MSIZE 2 >> testfile.data
-			./$1_pthread.out $t >> ./data/$1_pthread_$t.data 2>&1
+			# ./${PROGRAM}.out $MSIZE 2 >> testfile.data
+			./${PROGRAM}_pthread.out $t >> ./data/${PROGRAM}_pthread_$t.data 2>&1
 		fi
 	done
-	cat ./data/$1_pthread_$t.data | sort > sort.data
+	cat ./data/${PROGRAM}_pthread_$t.data | sort > sort.data
 	sed '1d; $d' sort.data > final.data
 	# avgp[$((t-1))]=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
 	# echo ${avgp[$((t-1))]}
@@ -100,7 +92,7 @@ do
 done
 
 #SAVING FILE FOR PLOTING IN GNUPLOT
-file="./data/$1_speedup.data"
+file="./data/${PROGRAM}_speedup.data"
 if [ -f $file ] ; then
     rm $file
 fi
@@ -111,6 +103,6 @@ do
 	# else
 		pthread=$(echo "$avgs / ${avgp[t]}" | bc -l)
 		omp=$(echo "$avgs / ${avgomp[t]}" | bc -l)
-		echo $t $omp $pthread >> ./data/$1_speedup.data
+		echo $t $omp $pthread >> ./data/${PROGRAM}_speedup.data
  # fi
 done

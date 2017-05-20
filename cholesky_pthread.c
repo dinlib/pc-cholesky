@@ -14,6 +14,7 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
+#include "pthread_barrier.h"
 #include "util.h"
 
 /* Include polybench common header. */
@@ -22,49 +23,52 @@
 /* Include benchmark-specific header. */
 #include "cholesky.h"
 
-double **M;
-double **N;
-int size = 0;
-int cut = 0;
-int nthreads = 0;
+pthread_barrier_t barrier;
+pthread_mutex_t lock;
 
+double **I, **O;
+double **Aux;
+int size;
+int cut;
+int nthreads;
 
 /* Array initialization. */
-static
-void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
-  M = (double **)malloc(n * sizeof(double));
-  N = (double **)malloc(n * sizeof(double));
+static void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
+  I = (double **)malloc(n * sizeof(double));
+  O = (double **)calloc(n, sizeof(double));
+  Aux = (double **)malloc(n * sizeof(double));
   int i, j;
   for (i = 0; i < n; i++){
-    M[i] = (double*)malloc(n * sizeof(double));
-    N[i] = (double*)malloc(n * sizeof(double));
+    I[i] = (double*)malloc(n * sizeof(double));
+    O[i] = (double*)calloc(n, sizeof(double));
+    Aux[i] = (double*)malloc(n * sizeof(double));
     for (j = 0; j <= i; j++){
       A[i][j] = (DATA_TYPE)(-j % n) / n + 1;
-      M[i][j] = (DATA_TYPE)(-j % n) / n + 1;
+      I[i][j] = (DATA_TYPE)(-j % n) / n + 1;
     }
     for (j = i+1; j < n; j++) {
       A[i][j] = 0;
-      M[i][j] = A[i][j];
+      I[i][j] = A[i][j];
     }
     A[i][i] = 1;
-    M[i][i] = A[i][i];
+    I[i][i] = A[i][i];
   }
 
   /* Make the matrix positive semi-definite. */
   int r,s,t;
 
   for (r = 0; r < n; ++r)
-  for (s = 0; s < n; ++s)
-  N[r][s] = 0;
+    for (s = 0; s < n; ++s)
+      Aux[r][s] = 0;
   for (t = 0; t < n; ++t)
+    for (r = 0; r < n; ++r)
+      for (s = 0; s < n; ++s)
+        Aux[r][s] += I[r][t] * I[s][t];
   for (r = 0; r < n; ++r)
-  for (s = 0; s < n; ++s)
-  N[r][s] += A[r][t] * A[s][t];
-  for (r = 0; r < n; ++r)
-  for (s = 0; s < n; ++s)
-  A[r][s] = N[r][s];
-  free2D(N);
-
+    for (s = 0; s < n; ++s){
+      I[r][s] = Aux[r][s];
+    }
+  free2D(Aux);
 }
 
 
@@ -84,69 +88,96 @@ static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
   POLYBENCH_DUMP_FINISH;
 }
 
+static void *kernel_cholesky_row(void *arg){
+	int i, j, k;
 
-/* Main computational kernel. The whole function will be timed,
-including the call and return. */
-static void *kernel_cholesky(void *arg){
   int id = *((int *)arg);
   int start = id * cut;
-  int end = minimum(start + cut, nthreads);
+  int end = minimum(start + cut, size);
 
-  start = maximum(1, start);
-  end = minimum(cut, nthreads - 1);
+  for (k = 0; k < size; k++) {
 
-  int i, j, k;
+    if(id == 0){
+      I[k][k] = SQRT_FUN(I[k][k]);
+      for (j = 0; j < k; j++) {
+  			I[k][j] /= I[j][j];
+        I[j][k] = I[k][j];
+  		}
+    }
 
-  #pragma scop
-  for (i = start; i < end; i++) {
-    //j<i
-    for (j = start; j < i; j++) {
-      for (k = start; k < j; k++) {
-        M[i][j] -= M[i][k] * M[j][k];
+    pthread_barrier_wait(&barrier);
+
+    for(i = start + (k + 1); i < end + k + 1; i++){
+      for(j = i; j < size; j++){
+         I[i][j] -=  I[k][i] *  I[k][j];
+         I[j][i] = I[i][j];
       }
-      M[i][j] /= M[j][j];
     }
-    // i==j case
-    for (k = start; k < i; k++) {
-      M[i][i] -= M[i][k] * M[i][k];
-    }
-    M[i][i] = SQRT_FUN(M[i][i]);
+    pthread_barrier_wait(&barrier);
   }
-  #pragma endscop
+  pthread_barrier_wait(&barrier);
 
+  for(i = start; i < end; i++){
+    for(j = i + 1; j < size; j++){
+      I[i][j] = 0.0;
+    }
+  }
 }
 
-
-int main(int argc, char** argv){
-  /* Threads qtt */
-  nthreads = atoi(argv[1]);
-
-  /* Retrieve problem size. */
-  int n = N;
-  size = n;
-  cut = (int)ceil(((float)size) / nthreads);
-
-
-  /* Variable declaration/allocation. */
-  POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, n, n);
-
-  /* Initialize array(s). */
-  init_array (n, POLYBENCH_ARRAY(A));
-
-  /* Start timer. */
-  polybench_start_instruments;
-
-  BEGINTIME();
+void cholesky_pthread(){
   pthread_t thread[nthreads];
   /* Run kernel. */
+  int arg[nthreads];
   for (int i = 0; i < nthreads; i++) {
-    pthread_create(&thread[i], NULL, kernel_cholesky, &i);
+    arg[i] = i;
+    pthread_create(&thread[i], NULL, kernel_cholesky_row, &arg[i]);
   }
   for (int i = 0; i < nthreads; i++) {
     pthread_join(thread[i], NULL);
   }
+}
+
+
+
+int main(int argc, char** argv){
+
+  if(argc < 2){
+    printf("The program must have an argument to be executed. ./cholesky_pthread.out $nthreads\n");
+    return -1;
+  }
+
+  nthreads = atoi(argv[1]);
+
+  /* Threads qtt */
+  nthreads = atoi(argv[1]);
+
+  /* Retrieve problem size. */
+  size = N;
+
+  /* Calculate trail for threads */
+  cut = (int)ceil(((float)size) / nthreads);
+
+
+  /* Variable declaration/allocation. */
+  POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
+
+  /* Initialize array(s). */
+  init_array (size, POLYBENCH_ARRAY(A));
+
+  /* Start timer. */
+  polybench_start_instruments;
+  printMatrix(I, size);
+
+  pthread_barrier_init(&barrier, NULL, nthreads);
+
+  BEGINTIME();
+
+  cholesky_pthread();
+
   // kernel_cholesky (n, POLYBENCH_ARRAY(A));
   ENDTIME();
+
+  printMatrix(I, size);
 
   /* Stop and print timer. */
   polybench_stop_instruments;
@@ -154,11 +185,12 @@ int main(int argc, char** argv){
 
   /* Prevent dead-code elimination. All live-out data must be printed
   by the function call in argument. */
-  polybench_prevent_dce(print_array(n, POLYBENCH_ARRAY(A)));
+  polybench_prevent_dce(print_array(size, POLYBENCH_ARRAY(A)));
 
   /* Be clean. */
   POLYBENCH_FREE_ARRAY(A);
-  free2D(M);
+  free2D(I);
+  free2D(O);
 
   return 0;
 }
