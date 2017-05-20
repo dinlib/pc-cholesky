@@ -1,6 +1,6 @@
 # CC = /usr/local/bin/gcc-6
 CC = gcc
-CFLAGS = -lm
+CFLAGS = -std=gnu99 -lm
 DATASET = -DLARGE_DATASET
 PROGRAM = cholesky
 
