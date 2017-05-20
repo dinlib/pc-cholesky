@@ -180,7 +180,6 @@ static void cholesky_row_lower(){
 int main(int argc, char** argv){
 	/* Retrieve problem size. */
   size = N;
-  printf("size: %d\n", size);
 
 	/* Variable declaration/allocation. */
 	POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
@@ -191,16 +190,16 @@ int main(int argc, char** argv){
 
 	/* Start timer. */
 	polybench_start_instruments;
-	printMatrix(I, size);
+	// printMatrix(I, size);
   // printMatrix(O, size);
 
 	BEGINTIME();
 	/* Run kernel. */
   // kernel_cholesky(size, POLYBENCH_ARRAY(A));
   cholesky_row_lower();
+  
 	ENDTIME();
-  printf("\n");
-  printMatrix(I, size);
+  // printMatrix(I, size);
 
 	/* Stop and print timer. */
 	polybench_stop_instruments;

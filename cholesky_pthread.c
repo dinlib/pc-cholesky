@@ -166,7 +166,7 @@ int main(int argc, char** argv){
 
   /* Start timer. */
   polybench_start_instruments;
-  printMatrix(I, size);
+  // printMatrix(I, size);
 
   pthread_barrier_init(&barrier, NULL, nthreads);
 
@@ -177,7 +177,7 @@ int main(int argc, char** argv){
   // kernel_cholesky (n, POLYBENCH_ARRAY(A));
   ENDTIME();
 
-  printMatrix(I, size);
+  // printMatrix(I, size);
 
   /* Stop and print timer. */
   polybench_stop_instruments;

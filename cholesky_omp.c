@@ -177,13 +177,14 @@ int main(int argc, char** argv){
 
 	/* Start timer. */
 	polybench_start_instruments;
-	printMatrix(I, size);
+	// printMatrix(I, size);
 
 	BEGINTIME();
 	/* Run kernel. */
 	cholesky_row_lower();
+  
 	ENDTIME();
-	printMatrix(O, size);
+	// printMatrix(O, size);
 
 	/* Stop and print timer. */
 	polybench_stop_instruments;
