@@ -20,7 +20,7 @@ then
 fi
 for i in {1..11}
 do
-	 echo "SEQUENTIAL - EXECUTION $i"
+	 echo "SEQUENTIAL POLYBENCH - EXECUTION $i"
    if [[ $i == 1 ]]; then
      ./${PROGRAM}.out > /dev/null
    else
@@ -33,7 +33,29 @@ sed '1d; $d' sort.data > final.data
 avgs=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
 echo $avgs
 rm final.data sort.data
-# ./cholesky.out
+
+# SEQUENTIAL CHOLESKY
+# echo "SEQUENTIAL"
+file="./data/${PROGRAM}_developed_sequential.data"
+if [ -f "$file" ]
+then
+	rm $file
+fi
+for i in {1..11}
+do
+	 echo "SEQUENTIAL DEVELOPED - EXECUTION $i"
+   if [[ $i == 1 ]]; then
+     ./${PROGRAM}_developed.out > /dev/null
+   else
+    # ./${PROGRAM}_developed.out $MSIZE 2 >> testfile.data
+     ./${PROGRAM}_developed.out >> ./data/${PROGRAM}_developed_sequential.data 2>&1
+  fi
+done
+cat ./data/${PROGRAM}_developed_sequential.data | sort > sort.data
+sed '1d; $d' sort.data > final.data
+avgsd=$(awk '{s+=$1}END{print s/NR}' RS="\n" final.data)
+echo $avgs
+rm final.data sort.data
 
 # OMP CHOLESKY
 for t in 2 4 8 16 32
@@ -103,6 +125,9 @@ do
 	# else
 		pthread=$(echo "$avgs / ${avgp[t]}" | bc -l)
 		omp=$(echo "$avgs / ${avgomp[t]}" | bc -l)
+		pthread_d=$(echo "$avgsd / ${avgp[t]}" | bc -l)
+		omp_d=$(echo "$avgsd / ${avgomp[t]}" | bc -l)
 		echo $t $omp $pthread >> ./data/${PROGRAM}_speedup.data
+		echo $t $omp_d $pthread_d >> ./data/${PROGRAM}_speedup.data
  # fi
 done

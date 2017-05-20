@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
-#include <omp.h>
 #include "util.h"
 
 /* Include polybench common header. */
@@ -46,9 +45,11 @@ static void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
     for (j = i+1; j < n; j++) {
       A[i][j] = 0;
       I[i][j] = A[i][j];
+      // O[i][j] = A[i][j];
     }
     A[i][i] = 1;
     I[i][i] = A[i][i];
+    // O[i][i] = A[i][i];
   }
 
   /* Make the matrix positive semi-definite. */
@@ -64,6 +65,7 @@ static void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
   for (r = 0; r < n; ++r)
     for (s = 0; s < n; ++s){
       I[r][s] = Aux[r][s];
+      // O[r][s] = Aux[r][s];
     }
   free2D(Aux);
 }
@@ -85,6 +87,47 @@ static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 	POLYBENCH_DUMP_FINISH;
 }
 
+static void cholesky_crout(){
+	int i, j, k;
+	double sum;
+	#pragma scop
+	for (j = 0; j < size; j++) {
+    sum = 0;
+    for (k = 0; k < j; k++) {
+      sum += O[j][k] * O[j][k];
+    }
+    O[j][j] = SQRT_FUN(I[j][j] - sum);
+    for (i = j + 1; i < size; i++) {
+      sum = 0;
+      for (k = 0; k < j; k++) {
+        sum += O[i][k] * O[j][k];
+      }
+      O[i][j] = (1.0 / O[j][j] * (I[i][j] - sum));
+    }
+  }
+	#pragma endscop
+}
+
+static void cholesky_row_upper(){
+	int i, j, k;
+	for(k = 0; k < size; k++){
+			  I[k][k] = sqrtf(I[k][k]);
+			  for(j = (k + 1); j < size; j++){
+          I[k][j] /=  I[k][k];
+        }
+				for(i = (k + 1); i < size; i++){
+					for(j = i; j < size; j++){
+						 I[i][j] -=  I[k][i] *  I[k][j];
+					}
+				}
+	}
+	for(i = 0; i < size; i++){
+    for(j = 0; j < i; j++){
+      I[i][j] = 0.0;
+    }
+  }
+}
+
 static void cholesky_row_lower(){
 	int i, j, k;
 	for(k = 0; k < size; k++){
@@ -93,7 +136,6 @@ static void cholesky_row_lower(){
           I[k][j] /=  I[k][k];
           I[j][k] = I[k][j];
         }
-        #pragma omp parallel for shared(I) private(i,j) num_threads(nthreads)
 				for(i = (k + 1); i < size; i++){
 					for(j = i; j < size; j++){
 						 I[i][j] -=  I[k][i] *  I[k][j];
@@ -108,40 +150,9 @@ static void cholesky_row_lower(){
   }
 }
 
-static void cholesky_crout(){
-	int i, j, k;
-	double sum;
-	#pragma scop
-	for (j = 0; j < size; j++) {
-    sum = 0;
-    for (k = 0; k < j; k++) {
-      sum += O[j][k] * O[j][k];
-    }
-    O[j][j] = SQRT_FUN(I[j][j] - sum);
-		#pragma omp parallel for private(i, k, sum) shared(I, O, j) num_threads(nthreads)
-    for (i = j + 1; i < size; i++) {
-      sum = 0;
-      for (k = 0; k < j; k++) {
-        sum += O[i][k] * O[j][k];
-      }
-      O[i][j] = (1.0 / O[j][j] * (I[i][j] - sum));
-    }
-  }
-	#pragma endscop
-}
-
 
 int main(int argc, char** argv){
-
-	if(argc < 2){
-    printf("The program must have an argument to be executed. ./cholesky_omp.out $nthreads\n");
-    return -1;
-  }
-
-  nthreads = atoi(argv[1]);
-
 	/* Retrieve problem size. */
-
   size = N;
 
 	/* Variable declaration/allocation. */
@@ -149,16 +160,20 @@ int main(int argc, char** argv){
 
 	/* Initialize array(s). */
 	init_array(size, POLYBENCH_ARRAY(A));
+  // test(I, size)
 
 	/* Start timer. */
 	polybench_start_instruments;
 	// printMatrix(I, size);
+  // printMatrix(O, size);
 
 	BEGINTIME();
 	/* Run kernel. */
-	cholesky_row_lower();
+  // kernel_cholesky(size, POLYBENCH_ARRAY(A));
+  cholesky_row_lower();
+
 	ENDTIME();
-	// printMatrix(O, size);
+  // printMatrix(I, size);
 
 	/* Stop and print timer. */
 	polybench_stop_instruments;
