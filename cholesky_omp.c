@@ -15,6 +15,7 @@
 #include <math.h>
 #include <omp.h>
 #include "util.h"
+#include "papi.h"
 
 /* Include polybench common header. */
 #include <polybench.h>
@@ -142,7 +143,14 @@ int main(int argc, char** argv){
 
 	/* Retrieve problem size. */
 
-  size = N;
+    size = N;
+
+    int counters[5] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM, PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
+    // int counters[2] = {PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
+    if ((ret = PAPI_start_counters(counters, 5)) != PAPI_OK) {
+        fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
+        exit(1);
+    }
 
 	/* Variable declaration/allocation. */
 	POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
@@ -157,8 +165,20 @@ int main(int argc, char** argv){
 	BEGINTIME();
 	/* Run kernel. */
 	cholesky_row_lower();
-	ENDTIME();
-	// printMatrix(O, size);
+    // kernel_cholesky (n, POLYBENCH_ARRAY(A));
+    printf("ELAPSED TIME: ");
+    ENDTIME();
+    // printMatrix(I, size);
+    if ((ret = PAPI_read_counters(counters, 5)) != PAPI_OK) {
+        fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
+        exit(1);
+    }
+    printf("TOTAL L1 MISS: %d\n", counters[0]);
+    printf("TOTAL L2 MISS: %d\n", counters[1]);
+    printf("TOTAL L3 MISS: %d\n", counters[2]);
+    printf("TOTAL CLOCK CYCLES: %d\n", counters[3]);
+    printf("TOTAL INSTRUCTIONS: %d\n", counters[4]);
+    printf("--------------------------------------\n");
 
 	/* Stop and print timer. */
 	polybench_stop_instruments;
