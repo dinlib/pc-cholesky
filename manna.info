@@ -1,0 +1,19 @@
+Available PAPI preset and user defined events plus hardware information.
+--------------------------------------------------------------------------------
+PAPI Version             : 5.5.1.0
+Vendor string and code   : GenuineIntel (1)
+Model string and code    : Intel(R) Core(TM) i5-2500 CPU @ 3.30GHz (42)
+CPU Revision             : 7.000000
+CPUID Info               : Family: 6  Model: 42  Stepping: 7
+CPU Max Megahertz        : 3700
+CPU Min Megahertz        : 1600
+Hdw Threads per core     : 1
+Cores per Socket         : 4
+Sockets                  : 1
+NUMA Nodes               : 1
+CPUs per Node            : 4
+Total CPUs               : 4
+Running in a VM          : no
+Number Hardware Counters : 11
+Max Multiplex Counters   : 384
+--------------------------------------------------------------------------------
