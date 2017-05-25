@@ -172,6 +172,7 @@ int main(int argc, char** argv){
   pthread_barrier_init(&barrier, NULL, nthreads);
 
   int counters[5] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM, PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
+  long long values[5];
   // int counters[2] = {PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
   if ((ret = PAPI_start_counters(counters, 5)) != PAPI_OK) {
       fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
@@ -185,15 +186,15 @@ int main(int argc, char** argv){
   printf("ELAPSED TIME: ");
   ENDTIME();
   // printMatrix(I, size);
-  if ((ret = PAPI_read_counters(counters, 5)) != PAPI_OK) {
+  if ((ret = PAPI_read_counters(values, 5)) != PAPI_OK) {
       fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
       exit(1);
   }
-  printf("TOTAL L1 MISS: %d\n", counters[0]);
-  printf("TOTAL L2 MISS: %d\n", counters[1]);
-  printf("TOTAL L3 MISS: %d\n", counters[2]);
-  printf("TOTAL CLOCK CYCLES: %d\n", counters[3]);
-  printf("TOTAL INSTRUCTIONS: %d\n", counters[4]);
+  printf("TOTAL L1 MISS: %lld\n", values[0]);
+  printf("TOTAL L2 MISS: %lld\n", values[1]);
+  printf("TOTAL L3 MISS: %lld\n", values[2]);
+  printf("TOTAL CLOCK CYCLES: %lld\n", values[3]);
+  printf("TOTAL INSTRUCTIONS: %lld\n", values[4]);
   printf("--------------------------------------\n");
 
   // printMatrix(I, size);
