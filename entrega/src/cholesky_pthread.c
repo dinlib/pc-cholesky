@@ -27,10 +27,6 @@
 pthread_barrier_t barrier;
 pthread_mutex_t lock;
 
-int counters[5] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM, PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
-long long values[5];
-long long values_per_thread[5];
-
 double **I, **O;
 double **Aux;
 int size;
@@ -94,14 +90,6 @@ static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 }
 
 static void *kernel_cholesky_row(void *arg){
-
-  PAPI_register_thread();
-  long long values_per_thread[5];
-  if ((ret = PAPI_start_counters(counters, 5)) != PAPI_OK) {
-      fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
-      exit(1);
-  }
-
 	int i, j, k;
 
   int id = *((int *)arg);
@@ -135,40 +123,16 @@ static void *kernel_cholesky_row(void *arg){
       I[i][j] = 0.0;
     }
   }
-
-  pthread_mutex_lock(&lock);
-  if ((ret = PAPI_read_counters(values, 5)) != PAPI_OK) {
-      fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
-      exit(1);
-  }
-	for (size_t i = 0; i < NUM_EVENTS; i++) {
-		values[i] += values_per_thread[i];
-	}
-	pthread_mutex_unlock(&lock);
-
 }
 
 void cholesky_pthread(){
   pthread_t thread[nthreads];
   /* Run kernel. */
   int arg[nthreads];
-
-  PAPI_read_counters(values, 5);
-  pthread_attr_t pthreadAttr;
-
-  PAPI_library_init(PAPI_VER_CURRENT);
-  PAPI_thread_init(pthread_self);
-
-  pthread_attr_init(&pthreadAttr);
-  pthread_attr_setscope(&pthreadAttr, PTHREAD_SCOPE_SYSTEM);
-
   for (int i = 0; i < nthreads; i++) {
     arg[i] = i;
     pthread_create(&thread[i], NULL, kernel_cholesky_row, &arg[i]);
   }
-
-  pthread_attr_destroy(&pthreadAttr);
-  
   for (int i = 0; i < nthreads; i++) {
     pthread_join(thread[i], NULL);
   }
@@ -185,11 +149,15 @@ int main(int argc, char** argv){
 
   nthreads = atoi(argv[1]);
 
+  /* Threads qtt */
+  nthreads = atoi(argv[1]);
+
   /* Retrieve problem size. */
   size = N;
 
   /* Calculate trail for threads */
   cut = (int)ceil(((float)size) / nthreads);
+
 
   /* Variable declaration/allocation. */
   POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
@@ -203,6 +171,14 @@ int main(int argc, char** argv){
 
   pthread_barrier_init(&barrier, NULL, nthreads);
 
+  // int counters[5] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM, PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
+  // long long values[5];
+  // // int counters[2] = {PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
+  // if ((ret = PAPI_start_counters(counters, 5)) != PAPI_OK) {
+  //     fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
+  //     exit(1);
+  // }
+
   BEGINTIME();
 
   cholesky_pthread();
@@ -210,8 +186,10 @@ int main(int argc, char** argv){
   printf("ELAPSED TIME: ");
   ENDTIME();
   // printMatrix(I, size);
-
-
+  // if ((ret = PAPI_read_counters(values, 5)) != PAPI_OK) {
+  //     fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
+  //     exit(1);
+  // }
   // printf("TOTAL L1 MISS: %lld\n", values[0]);
   // printf("TOTAL L2 MISS: %lld\n", values[1]);
   // printf("TOTAL L3 MISS: %lld\n", values[2]);

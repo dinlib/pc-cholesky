@@ -105,6 +105,11 @@ static void kernel_cholesky(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 int main(int argc, char** argv)
 {
 
+	/* PAPI variables */
+	float real_time, proc_time, mflops;
+  long long flpins;
+  int retval;
+
   /* Retrieve problem size. */
   int n = N;
 
@@ -117,11 +122,22 @@ int main(int argc, char** argv)
   /* Start timer. */
   polybench_start_instruments;
 
+	/* Setup PAPI library and begin collecting data from the counters */
+  if((retval=PAPI_flops( &real_time, &proc_time, &flpins, &mflops))<PAPI_OK)
+    test_fail(__FILE__, __LINE__, "PAPI_flops", retval);
 
   BEGINTIME();
   /* Run kernel. */
   kernel_cholesky (n, POLYBENCH_ARRAY(A));
   ENDTIME();
+
+	/* Collect the data into the variables passed in */
+  if((retval=PAPI_flops( &real_time, &proc_time, &flpins, &mflops))<PAPI_OK)
+    test_fail(__FILE__, __LINE__, "PAPI_flops", retval);
+  printf("Real_time:\t%f\nProc_time:\t%f\nTotal flpins:\t%lld\nMFLOPS:\t\t%f\n",
+  real_time, proc_time, flpins, mflops);
+  printf("%s\tPASSED\n", __FILE__);
+  PAPI_shutdown();
 
   /* Stop and print timer. */
   polybench_stop_instruments;
