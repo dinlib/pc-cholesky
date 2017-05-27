@@ -16,7 +16,7 @@
 #include <pthread.h>
 #include "pthread_barrier.h"
 #include "util.h"
-// #include "papi.h"
+#include "papi.h"
 
 /* Include polybench common header. */
 #include <polybench.h>
@@ -168,7 +168,7 @@ void cholesky_pthread(){
   }
 
   pthread_attr_destroy(&pthreadAttr);
-  
+
   for (int i = 0; i < nthreads; i++) {
     pthread_join(thread[i], NULL);
   }
