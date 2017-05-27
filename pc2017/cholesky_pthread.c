@@ -211,6 +211,7 @@ int main(int argc, char** argv){
   }
 
   nthreads = atoi(argv[1]);
+  opt = atoi(argv[2]);
 
   /* Retrieve problem size. */
   size = N;
