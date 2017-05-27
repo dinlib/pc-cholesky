@@ -45,10 +45,10 @@ for i in {1..11}
 do
 	 echo "OMP FOR 8 THREADS - EXECUTION $i"
  if [[ $i == 1 ]]; then
-   ./${PROGRAM}_omp.out 8 1> /dev/null
+   ./${PROGRAM}_omp.out 8 1 > /dev/null
  else
   # ./${PROGRAM}.out $MSIZE 2 >> testfile.data
-   ./${PROGRAM}_omp.out 8 1>> ./papidata/${PROGRAM}_omp_8.data 2>&1
+   ./${PROGRAM}_omp.out 8 1 >> ./papidata/${PROGRAM}_omp_8.data 2>&1
 fi
 done
 for i in {12..21}

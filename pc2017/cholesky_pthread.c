@@ -99,7 +99,8 @@ static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 static void *kernel_cholesky_row(void *arg){
 
   PAPI_register_thread();
-  long long values_per_thread[5];
+  long long vpt1[3];
+  long long vpt2[2];
   if(opt == 1){
     if ((ret = PAPI_start_counters(c1, 3)) != PAPI_OK) {
         fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
@@ -149,25 +150,25 @@ static void *kernel_cholesky_row(void *arg){
 
   pthread_mutex_lock(&lock);
   if(opt == 1){
-    if ((ret = PAPI_read_counters(v1, 3)) != PAPI_OK) {
+    if ((ret = PAPI_read_counters(vpt1, 3)) != PAPI_OK) {
         fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
         exit(1);
     }
   }
   else{
-    if ((ret = PAPI_read_counters(v2, 2)) != PAPI_OK) {
+    if ((ret = PAPI_read_counters(vpt2, 2)) != PAPI_OK) {
         fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
         exit(1);
     }
   }
   if(opt == 1){
     for (size_t i = 0; i < 3; i++) {
-  		v1[i] += values_per_thread[i];
+  		v1[i] += vpt1[i];
   	}
   }
   else{
     for (size_t i = 0; i < 2; i++) {
-  		v2[i] += values_per_thread[i];
+  		v2[i] += vpt2[i];
   	}
   }
 
