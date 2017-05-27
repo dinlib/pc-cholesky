@@ -1,8 +1,9 @@
 #! /bin/bash
+DATASET="MEDIUM"
 
-gcc -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_developed.c /usr/local/lib/libpapi.a -lm -DLARGE_DATASET -o cholesky_developed.out
-gcc -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_pthread.c /usr/local/lib/libpapi.a -pthread -lm -DLARGE_DATASET -o cholesky_pthread.out
-gcc -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_omp.c /usr/local/lib/libpapi.a -fopenmp -lm -DLARGE_DATASET -o cholesky_omp.out
+gcc -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_developed.c /usr/local/lib/libpapi.a -lm -D${DATASET}_DATASET -o cholesky_developed.out
+gcc -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_pthread.c /usr/local/lib/libpapi.a -pthread -lm -D${DATASET}_DATASET -o cholesky_pthread.out
+gcc -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_omp.c /usr/local/lib/libpapi.a -fopenmp -lm -D${DATASET}_DATASET -o cholesky_omp.out
 
 PROGRAM="cholesky"
 
