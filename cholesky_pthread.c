@@ -14,7 +14,7 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
-#include "pthread_barrier.h"
+// #include "pthread_barrier.h"
 #include "util.h"
 #include "papi.h"
 
@@ -141,7 +141,7 @@ static void *kernel_cholesky_row(void *arg){
       fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
       exit(1);
   }
-	for (size_t i = 0; i < NUM_EVENTS; i++) {
+	for (size_t i = 0; i < 5; i++) {
 		values[i] += values_per_thread[i];
 	}
 	pthread_mutex_unlock(&lock);
