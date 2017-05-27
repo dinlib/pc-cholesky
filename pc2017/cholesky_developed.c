@@ -208,9 +208,9 @@ int main(int argc, char** argv){
       if ((ret = PAPI_read_counters(v2, 2)) != PAPI_OK) {
           fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
           exit(1);
-          printf("TOTAL CLOCK CYCLES: %lld\n", v2[0]);
-          printf("TOTAL INSTRUCTIONS: %lld\n", v2[1]);
       }
+      printf("TOTAL CLOCK CYCLES: %lld\n", v2[0]);
+      printf("TOTAL INSTRUCTIONS: %lld\n", v2[1]);
     }
     printf("--------------------------------------\n");
     /* Stop and print timer. */
