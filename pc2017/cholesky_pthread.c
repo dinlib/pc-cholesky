@@ -181,7 +181,12 @@ void cholesky_pthread(){
   /* Run kernel. */
   int arg[nthreads];
 
-  PAPI_read_counters(values, 5);
+  if(opt == 1){
+    PAPI_read_counters(v1, 3);
+  }
+  else{
+    PAPI_read_counters(v2, 2);
+  }
   pthread_attr_t pthreadAttr;
 
   PAPI_library_init(PAPI_VER_CURRENT);
