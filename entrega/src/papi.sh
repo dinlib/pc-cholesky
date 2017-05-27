@@ -1,9 +1,9 @@
 #! /bin/bash
 DATASET="LARGE"
 
-gcc -I ../ -I ../utilities/ -I /usr/local/include/ ../utilities/polybench.c cholesky_developed.c /usr/local/lib/libpapi.a -lm -D${DATASET}_DATASET -o cholesky_developed.out
-gcc -I ../ -I ../utilities/ -I /usr/local/include/ ../utilities/polybench.c cholesky_pthread.c /usr/local/lib/libpapi.a -pthread -lm -D${DATASET}_DATASET -o cholesky_pthread.out
-gcc -I ../ -I ../utilities/ -I /usr/local/include/ ../utilities/polybench.c cholesky_omp.c /usr/local/lib/libpapi.a -fopenmp -lm -D${DATASET}_DATASET -o cholesky_omp.out
+gcc  -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_developed.c /usr/local/lib/libpapi.a -lm -D${DATASET}_DATASET -o cholesky_developed.out
+gcc  -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_pthread.c /usr/local/lib/libpapi.a -pthread -lm -D${DATASET}_DATASET -o cholesky_pthread.out
+gcc  -I utilities/ -I /usr/local/include/ utilities/polybench.c cholesky_omp.c /usr/local/lib/libpapi.a -fopenmp -lm -D${DATASET}_DATASET -o cholesky_omp.out
 
 PROGRAM="cholesky"
 
@@ -76,7 +76,7 @@ do
 		./${PROGRAM}_pthread.out 8 1 >> ./papidata/${PROGRAM}_pthread_8.data 2>&1
 	fi
 done
-for i in {1..11}
+for i in {12..21}
 do
 	echo "PTHREAD FOR $t THREADS - EXECUTION $i"
 		./${PROGRAM}_pthread.out 8 2 >> ./papidata/${PROGRAM}_pthread_8.data 2>&1

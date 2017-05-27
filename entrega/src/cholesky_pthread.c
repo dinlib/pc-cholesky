@@ -14,9 +14,9 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
-#include "pthread_barrier.h"
+// #include "pthread_barrier.h"
 #include "util.h"
-// #include "papi.h"
+#include "papi.h"
 
 /* Include polybench common header. */
 #include <polybench.h>
@@ -27,11 +27,18 @@
 pthread_barrier_t barrier;
 pthread_mutex_t lock;
 
+int ret;
+int c1[3] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM};
+int c2[2] = {PAPI_TOT_CYC, PAPI_TOT_INS};
+long long v1[3], v2[2];
+
+
 double **I, **O;
 double **Aux;
 int size;
 int cut;
 int nthreads;
+int opt;
 
 /* Array initialization. */
 static void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
@@ -90,6 +97,23 @@ static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 }
 
 static void *kernel_cholesky_row(void *arg){
+
+  PAPI_register_thread();
+  long long vpt1[3];
+  long long vpt2[2];
+  if(opt == 1){
+    if ((ret = PAPI_start_counters(c1, 3)) != PAPI_OK) {
+        fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
+        exit(1);
+    }
+  }
+  else{
+    if ((ret = PAPI_start_counters(c2, 2)) != PAPI_OK) {
+        fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
+        exit(1);
+    }
+  }
+
 	int i, j, k;
 
   int id = *((int *)arg);
@@ -123,16 +147,61 @@ static void *kernel_cholesky_row(void *arg){
       I[i][j] = 0.0;
     }
   }
+
+  pthread_mutex_lock(&lock);
+  if(opt == 1){
+    if ((ret = PAPI_read_counters(vpt1, 3)) != PAPI_OK) {
+        fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
+        exit(1);
+    }
+  }
+  else{
+    if ((ret = PAPI_read_counters(vpt2, 2)) != PAPI_OK) {
+        fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
+        exit(1);
+    }
+  }
+  if(opt == 1){
+    for (size_t i = 0; i < 3; i++) {
+  		v1[i] += vpt1[i];
+  	}
+  }
+  else{
+    for (size_t i = 0; i < 2; i++) {
+  		v2[i] += vpt2[i];
+  	}
+  }
+
+	pthread_mutex_unlock(&lock);
+
 }
 
 void cholesky_pthread(){
   pthread_t thread[nthreads];
   /* Run kernel. */
   int arg[nthreads];
+
+  if(opt == 1){
+    PAPI_read_counters(v1, 3);
+  }
+  else{
+    PAPI_read_counters(v2, 2);
+  }
+  pthread_attr_t pthreadAttr;
+
+  PAPI_library_init(PAPI_VER_CURRENT);
+  PAPI_thread_init(pthread_self);
+
+  pthread_attr_init(&pthreadAttr);
+  pthread_attr_setscope(&pthreadAttr, PTHREAD_SCOPE_SYSTEM);
+
   for (int i = 0; i < nthreads; i++) {
     arg[i] = i;
     pthread_create(&thread[i], NULL, kernel_cholesky_row, &arg[i]);
   }
+
+  pthread_attr_destroy(&pthreadAttr);
+
   for (int i = 0; i < nthreads; i++) {
     pthread_join(thread[i], NULL);
   }
@@ -148,16 +217,13 @@ int main(int argc, char** argv){
   }
 
   nthreads = atoi(argv[1]);
-
-  /* Threads qtt */
-  nthreads = atoi(argv[1]);
+  opt = atoi(argv[2]);
 
   /* Retrieve problem size. */
   size = N;
 
   /* Calculate trail for threads */
   cut = (int)ceil(((float)size) / nthreads);
-
 
   /* Variable declaration/allocation. */
   POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
@@ -171,14 +237,6 @@ int main(int argc, char** argv){
 
   pthread_barrier_init(&barrier, NULL, nthreads);
 
-  // int counters[5] = {PAPI_L1_TCM, PAPI_L2_TCM, PAPI_L3_TCM, PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
-  // long long values[5];
-  // // int counters[2] = {PAPI_TOT_CYC, PAPI_TOT_INS}, ret;
-  // if ((ret = PAPI_start_counters(counters, 5)) != PAPI_OK) {
-  //     fprintf(stderr, "PAPI failed to start counters: %s\n", PAPI_strerror(ret));
-  //     exit(1);
-  // }
-
   BEGINTIME();
 
   cholesky_pthread();
@@ -186,17 +244,18 @@ int main(int argc, char** argv){
   printf("ELAPSED TIME: ");
   ENDTIME();
   // printMatrix(I, size);
-  // if ((ret = PAPI_read_counters(values, 5)) != PAPI_OK) {
-  //     fprintf(stderr, "PAPI failed to read counters: %s\n", PAPI_strerror(ret));
-  //     exit(1);
-  // }
-  // printf("TOTAL L1 MISS: %lld\n", values[0]);
-  // printf("TOTAL L2 MISS: %lld\n", values[1]);
-  // printf("TOTAL L3 MISS: %lld\n", values[2]);
-  // printf("TOTAL CLOCK CYCLES: %lld\n", values[3]);
-  // printf("TOTAL INSTRUCTIONS: %lld\n", values[4]);
-  // printf("--------------------------------------\n");
 
+
+  if(opt == 1){
+    printf("TOTAL L1 MISS: %lld\n", v1[0]);
+    printf("TOTAL L2 MISS: %lld\n", v1[1]);
+    printf("TOTAL L3 MISS: %lld\n", v1[2]);
+  }
+  else{
+    printf("TOTAL CLOCK CYCLES: %lld\n", v2[0]);
+    printf("TOTAL INSTRUCTIONS: %lld\n", v2[1]);
+  }
+  printf("--------------------------------------\n");
   // printMatrix(I, size);
 
   /* Stop and print timer. */
