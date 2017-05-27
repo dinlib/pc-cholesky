@@ -1,5 +1,5 @@
 #! /bin/bash
-DATASET="SMALL"
+DATASET="LARGE"
 
 gcc -I ../ -I ../utilities/ -I /usr/local/include/ ../utilities/polybench.c cholesky_developed.c /usr/local/lib/libpapi.a -lm -D${DATASET}_DATASET -o cholesky_developed.out
 gcc -I ../ -I ../utilities/ -I /usr/local/include/ ../utilities/polybench.c cholesky_pthread.c /usr/local/lib/libpapi.a -pthread -lm -D${DATASET}_DATASET -o cholesky_pthread.out
