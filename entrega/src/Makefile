@@ -1,14 +1,14 @@
 # CC = /usr/local/bin/gcc-6
 CC = gcc
-CFLAGS = -std=gnu99 -lm
-DATASET = -DLARGE_DATASET
+CFLAGS = -std=gnu99 -lm -I utilities/ -I /usr/local/include/
+DATASET = -DMEDIUM_DATASET
 PROGRAM = cholesky
 
 compile:
-	$(CC) $(CFLAGS) -I utilities utilities/polybench.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out
-	$(CC) $(CFLAGS) -I utilities utilities/polybench.c $(PROGRAM)_developed.c $(DATASET) -o $(PROGRAM)_developed.out
-	$(CC) $(CFLAGS) -fopenmp -I utilities utilities/polybench.c $(PROGRAM)_omp.c $(DATASET) -o $(PROGRAM)_omp.out
-	$(CC) $(CFLAGS) -pthread -I utilities utilities/polybench.c $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out
+	$(CC) $(CFLAGS) -I utilities -I /usr/local/include/ utilities/polybench.c $(PROGRAM).c /usr/local/lib/libpapi.a $(DATASET) -o $(PROGRAM).out
+	$(CC) $(CFLAGS) -I utilities -I /usr/local/include/ utilities/polybench.c $(PROGRAM)_developed.c /usr/local/lib/libpapi.a $(DATASET) -o $(PROGRAM)_developed.out
+	$(CC) $(CFLAGS) -fopenmp -I utilities -I /usr/local/include/ utilities/polybench.c $(PROGRAM)_omp.c /usr/local/lib/libpapi.a $(DATASET) -o $(PROGRAM)_omp.out
+	$(CC) $(CFLAGS) -pthread -I utilities -I /usr/local/include/ utilities/polybench.c $(PROGRAM)_pthread.c /usr/local/lib/libpapi.a $(DATASET) -o $(PROGRAM)_pthread.out
 
 clean:
 	rm *.out

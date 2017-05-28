@@ -25,9 +25,7 @@
 
 /* Array initialization. */
 static
-void init_array(int n,
-		DATA_TYPE POLYBENCH_2D(A,N,N,n,n))
-{
+void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
   int i, j;
 
   for (i = 0; i < n; i++)
@@ -60,11 +58,7 @@ void init_array(int n,
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static
-void print_array(int n,
-		 DATA_TYPE POLYBENCH_2D(A,N,N,n,n))
-
-{
+static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
   int i, j;
 
   POLYBENCH_DUMP_START;
@@ -102,8 +96,7 @@ static void kernel_cholesky(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 }
 
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv){
 
   /* Retrieve problem size. */
   int n = N;

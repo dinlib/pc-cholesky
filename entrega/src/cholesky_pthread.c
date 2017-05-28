@@ -33,7 +33,7 @@ int c2[2] = {PAPI_TOT_CYC, PAPI_TOT_INS};
 long long v1[3], v2[2];
 
 
-double **I, **O;
+double **I;
 double **Aux;
 int size;
 int cut;
@@ -43,12 +43,10 @@ int opt;
 /* Array initialization. */
 static void init_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
   I = (double **)malloc(n * sizeof(double));
-  O = (double **)calloc(n, sizeof(double));
   Aux = (double **)malloc(n * sizeof(double));
   int i, j;
   for (i = 0; i < n; i++){
     I[i] = (double*)malloc(n * sizeof(double));
-    O[i] = (double*)calloc(n, sizeof(double));
     Aux[i] = (double*)malloc(n * sizeof(double));
     for (j = 0; j <= i; j++){
       A[i][j] = (DATA_TYPE)(-j % n) / n + 1;
