@@ -267,7 +267,6 @@ int main(int argc, char** argv){
   /* Be clean. */
   POLYBENCH_FREE_ARRAY(A);
   free2D(I);
-  free2D(O);
 
   return 0;
 }
